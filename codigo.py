@@ -178,9 +178,9 @@ def generar_mapa_mejorado(ubicaciones, ruta_optima, ruta_ors, diresa, embed=Fals
     puntos_ruta = [ubicaciones[i]['coords'] for i in ruta_optima]
     folium.PolyLine(
         puntos_ruta,
-        color='blue',
+        color='#2563eb',
         weight=4,
-        opacity=0.7,
+        opacity=0.8,
         tooltip=f'Ruta optimizada {diresa}'
     ).add_to(mapa)
     
@@ -188,7 +188,7 @@ def generar_mapa_mejorado(ubicaciones, ruta_optima, ruta_ors, diresa, embed=Fals
         folium.GeoJson(
             ruta_ors,
             name='Ruta por carretera',
-            style_function=lambda x: {'color': 'red', 'weight': 5, 'opacity': 0.8},
+            style_function=lambda x: {'color': '#dc2626', 'weight': 5, 'opacity': 0.8},
             tooltip='Ruta real por carretera'
         ).add_to(mapa)
     
@@ -197,18 +197,31 @@ def generar_mapa_mejorado(ubicaciones, ruta_optima, ruta_ors, diresa, embed=Fals
         is_start = (idx == ruta_optima[0])
         
         popup_content = f"""
-        <b>{loc['nombre']}</b><br>
-        <b>Orden en ruta:</b> {ruta_optima.index(idx)+1}<br>
-        <b>DIRESA:</b> {loc.get('diresa', 'N/A')}<br>
-        <b>Red:</b> {loc.get('red', 'N/A')}<br>
-        <b>Dirección:</b> {loc.get('direccion', 'N/A')}<br>
-        <b>Coordenadas:</b> {loc['coords'][0]:.6f}, {loc['coords'][1]:.6f}
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-width: 250px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; margin: -9px -9px 12px -9px; border-radius: 4px 4px 0 0;">
+                <h4 style="margin: 0; font-size: 16px; font-weight: 600;">{loc['nombre']}</h4>
+            </div>
+            <div style="padding: 0 4px;">
+                <p style="margin: 8px 0; display: flex; align-items: center;">
+                    <span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-right: 8px;">#{ruta_optima.index(idx)+1}</span>
+                    <strong>Orden en ruta</strong>
+                </p>
+                <p style="margin: 8px 0;"><strong>DIRESA:</strong> <span style="color: #6b7280;">{loc.get('diresa', 'N/A')}</span></p>
+                <p style="margin: 8px 0;"><strong>Red:</strong> <span style="color: #6b7280;">{loc.get('red', 'N/A')}</span></p>
+                <p style="margin: 8px 0;"><strong>Dirección:</strong> <span style="color: #6b7280;">{loc.get('direccion', 'N/A')}</span></p>
+                <p style="margin: 8px 0; font-size: 12px; color: #9ca3af;"><strong>Coordenadas:</strong> {loc['coords'][0]:.6f}, {loc['coords'][1]:.6f}</p>
+            </div>
+        </div>
         """
         
         folium.Marker(
             location=loc['coords'],
             popup=folium.Popup(popup_content, max_width=300),
-            icon=folium.Icon(color='green' if is_start else 'blue', icon='flag' if is_start else 'info-sign'),
+            icon=folium.Icon(
+                color='green' if is_start else 'blue', 
+                icon='play' if is_start else 'info-sign',
+                prefix='fa' if is_start else 'glyphicon'
+            ),
             tooltip=f"{ruta_optima.index(idx)+1}. {loc['nombre']}"
         ).add_to(mapa)
     
@@ -222,17 +235,371 @@ def generar_reporte_html(ubicaciones, ruta_optima, ruta_ors, diresa_seleccionada
     """Genera un reporte HTML completo con los resultados"""
     styles = """
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px; }
-        .section { margin-bottom: 30px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
-        .map-container { width: 100%; height: 600px; margin: 20px 0; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .summary-card { background: #e9f7fe; padding: 15px; border-radius: 5px; margin: 15px 0; }
-        .route-step { padding: 5px 0; border-bottom: 1px dotted #ddd; }
-        .highlight { background-color: #fffde7; padding: 2px 5px; border-radius: 3px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header { 
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            margin-bottom: 30px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .header h2 {
+            font-size: 1.5rem;
+            color: #4b5563;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        
+        .header p {
+            color: #6b7280;
+            font-size: 1rem;
+        }
+        
+        .section { 
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            margin-bottom: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .section-header {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            padding: 20px 30px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .section-header h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-content {
+            padding: 30px;
+        }
+        
+        .map-container { 
+            width: 100%;
+            height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stat-card.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .stat-card.warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        
+        .stat-card.info {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        table { 
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        
+        th {
+            background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+            color: white;
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        td {
+            padding: 16px 12px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.9rem;
+        }
+        
+        tr:nth-child(even) { 
+            background: #f9fafb;
+        }
+        
+        tr:hover {
+            background: #f3f4f6;
+            transition: background-color 0.2s ease;
+        }
+        
+        .route-timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .route-timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+        }
+        
+        .route-step {
+            position: relative;
+            padding: 20px 25px;
+            margin-bottom: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3b82f6;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .route-step:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .route-step::before {
+            content: '';
+            position: absolute;
+            left: -32px;
+            top: 25px;
+            width: 12px;
+            height: 12px;
+            background: #3b82f6;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+        
+        .route-step.start::before {
+            background: #10b981;
+            box-shadow: 0 0 0 2px #10b981;
+        }
+        
+        .route-step-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-right: 12px;
+        }
+        
+        .route-step-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #1f2937;
+            margin-bottom: 5px;
+        }
+        
+        .route-step-details {
+            color: #6b7280;
+            font-size: 0.9rem;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .distance-badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .legend {
+            background: #f8fafc;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 25px;
+            font-size: 0.9rem;
+            color: #4b5563;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+        
+        .legend-color.blue {
+            background: #3b82f6;
+        }
+        
+        .legend-color.red {
+            background: #dc2626;
+        }
+        
+        .order-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 50%;
+            font-weight: 600;
+            font-size: 0.8rem;
+            min-width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .section-content {
+                padding: 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .route-step-details {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            table {
+                font-size: 0.8rem;
+            }
+            
+            th, td {
+                padding: 8px 6px;
+            }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
     """
     
@@ -243,16 +610,40 @@ def generar_reporte_html(ubicaciones, ruta_optima, ruta_ors, diresa_seleccionada
         
         tabla_establecimientos += f"""
         <tr>
-            <td>{i+1}</td>
-            <td>{loc.get('codigo', '')}</td>
+            <td><span class="order-badge">{i+1}</span></td>
+            <td><strong>{loc.get('codigo', 'N/A')}</strong></td>
             <td>{loc['nombre']}</td>
-            <td>{loc.get('red', 'N/A')}</td>
-            <td>{distancia_anterior:.2f} km</td>
-            <td>{loc['coords'][0]:.6f}, {loc['coords'][1]:.6f}</td>
+            <td><span style="background: #e0f2fe; color: #0277bd; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">{loc.get('red', 'N/A')}</span></td>
+            <td><span class="distance-badge">{distancia_anterior:.2f} km</span></td>
+            <td style="font-family: monospace; font-size: 0.8rem; color: #6b7280;">{loc['coords'][0]:.6f}, {loc['coords'][1]:.6f}</td>
         </tr>
         """
     
+    # Generar timeline de ruta
+    ruta_timeline = ""
+    for i, idx in enumerate(ruta_optima):
+        loc = ubicaciones[idx]
+        distancia_anterior = 0 if i == 0 else geodesic(ubicaciones[ruta_optima[i-1]]['coords'], loc['coords']).km
+        is_start = i == 0
+        
+        ruta_timeline += f"""
+        <div class="route-step {'start' if is_start else ''}">
+            <div class="route-step-name">
+                <span class="route-step-number">{i+1}</span>
+                {loc['nombre']}
+            </div>
+            <div class="route-step-details">
+                <span>Red: {loc.get('red', 'N/A')}</span>
+                {f'<span class="distance-badge">{distancia_anterior:.2f} km desde anterior</span>' if not is_start else '<span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 500;">Punto de inicio</span>'}
+            </div>
+        </div>
+        """
+    
     mapa_html = generar_mapa_mejorado(ubicaciones, ruta_optima, ruta_ors, diresa_seleccionada, embed=True)
+    
+    # Calcular estadísticas adicionales
+    redes_involucradas = set(loc.get('red', 'N/A') for loc in ubicaciones)
+    tiempo_estimado = distancia_total / 60 * 1.5  # Estimación aproximada en horas
     
     html_content = f"""
     <!DOCTYPE html>
@@ -262,58 +653,130 @@ def generar_reporte_html(ubicaciones, ruta_optima, ruta_ors, diresa_seleccionada
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Reporte de Optimización - DIRESA {diresa_seleccionada}</title>
         {styles}
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     </head>
     <body>
-        <div class="header">
-            <h1>Reporte de Optimización de Rutas</h1>
-            <h2>DIRESA {diresa_seleccionada}</h2>
-            <p>Generado el {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</p>
-        </div>
-        
-        <div class="section">
-            <h3>Resumen de la Optimización</h3>
-            <div class="summary-card">
-                <p><strong>Total de establecimientos:</strong> {len(ruta_optima)}</p>
-                <p><strong>Distancia total estimada:</strong> <span class="highlight">{distancia_total:.2f} km</span></p>
-                <p><strong>Punto de inicio:</strong> {ubicaciones[ruta_optima[0]]['nombre']}</p>
-                <p><strong>Redes involucradas:</strong> {', '.join(set(loc.get('red', 'N/A') for loc in ubicaciones))}</p>
+        <div class="container">
+            <div class="header fade-in">
+                <h1><i class="fas fa-route"></i> Optimización de Rutas</h1>
+                <h2>DIRESA {diresa_seleccionada}</h2>
+                <p><i class="fas fa-calendar-alt"></i> Generado el {datetime.now().strftime('%d de %B de %Y a las %H:%M:%S')}</p>
+            </div>
+            
+            <div class="section fade-in">
+                <div class="section-header">
+                    <h3><i class="fas fa-chart-line"></i> Resumen Ejecutivo</h3>
+                </div>
+                <div class="section-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-number">{len(ruta_optima)}</span>
+                            <span class="stat-label">Establecimientos</span>
+                        </div>
+                        <div class="stat-card success">
+                            <span class="stat-number">{distancia_total:.1f}</span>
+                            <span class="stat-label">Kilómetros totales</span>
+                        </div>
+                        <div class="stat-card warning">
+                            <span class="stat-number">{tiempo_estimado:.1f}</span>
+                            <span class="stat-label">Horas estimadas</span>
+                        </div>
+                        <div class="stat-card info">
+                            <span class="stat-number">{len(redes_involucradas)}</span>
+                            <span class="stat-label">Redes de salud</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 20px; margin-top: 20px;">
+                        <h4 style="color: #0c4a6e; margin-bottom: 10px;"><i class="fas fa-info-circle"></i> Información clave</h4>
+                        <p style="margin-bottom: 8px;"><strong>Punto de inicio:</strong> {ubicaciones[ruta_optima[0]]['nombre']}</p>
+                        <p style="margin-bottom: 8px;"><strong>Redes involucradas:</strong> {', '.join(sorted(redes_involucradas))}</p>
+                        <p><strong>Método de optimización:</strong> Algoritmo del Viajante (TSP) con programación lineal</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section fade-in">
+                <div class="section-header">
+                    <h3><i class="fas fa-map-marked-alt"></i> Mapa Interactivo</h3>
+                </div>
+                <div class="section-content">
+                    <div class="map-container">
+                        {mapa_html}
+                    </div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color blue"></div>
+                            Ruta lineal optimizada
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color red"></div>
+                            Ruta por carretera (cuando disponible)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section fade-in">
+                <div class="section-header">
+                    <h3><i class="fas fa-route"></i> Secuencia de Visitas Recomendada</h3>
+                </div>
+                <div class="section-content">
+                    <div class="route-timeline">
+                        {ruta_timeline}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section fade-in">
+                <div class="section-header">
+                    <h3><i class="fas fa-table"></i> Detalle Completo de Establecimientos</h3>
+                </div>
+                <div class="section-content">
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-sort-numeric-down"></i> Orden</th>
+                                    <th><i class="fas fa-barcode"></i> Código</th>
+                                    <th><i class="fas fa-hospital"></i> Nombre del Establecimiento</th>
+                                    <th><i class="fas fa-network-wired"></i> Red de Salud</th>
+                                    <th><i class="fas fa-road"></i> Distancia</th>
+                                    <th><i class="fas fa-map-pin"></i> Coordenadas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {tabla_establecimientos}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <div class="section">
-            <h3>Ruta Óptima Recomendada</h3>
-            <div style="background: #f5f5f5; padding: 15px; border-radius: 5px;">
-                {"".join(f'<div class="route-step"><strong>{i+1}.</strong> {ubicaciones[idx]["nombre"]} <small>({ubicaciones[idx].get("red", "N/A")})</small> - Distancia: {geodesic(ubicaciones[ruta_optima[i-1]]["coords"], ubicaciones[idx]["coords"]).km:.2f} km desde anterior</div>' 
-                 for i, idx in enumerate(ruta_optima) if i > 0)}
-            </div>
-        </div>
-        
-        <div class="section">
-            <h3>Mapa Interactivo</h3>
-            <div class="map-container">
-                {mapa_html}
-            </div>
-            <p><small>Línea azul: Ruta lineal óptima | Línea roja: Ruta por carretera (cuando disponible)</small></p>
-        </div>
-        
-        <div class="section">
-            <h3>Detalle de Establecimientos</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Orden</th>
-                        <th>Código</th>
-                        <th>Nombre</th>
-                        <th>Red</th>
-                        <th>Distancia desde anterior</th>
-                        <th>Coordenadas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {tabla_establecimientos}
-                </tbody>
-            </table>
-        </div>
+        <script>
+            // Agregar animaciones suaves al cargar
+            document.addEventListener('DOMContentLoaded', function() {{
+                const elements = document.querySelectorAll('.fade-in');
+                elements.forEach((el, index) => {{
+                    setTimeout(() => {{
+                        el.style.opacity = '1';
+                        el.style.transform = 'translateY(0)';
+                    }}, index * 200);
+                }});
+            }});
+            
+            // Mejorar interactividad de la tabla
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {{
+                row.addEventListener('click', function() {{
+                    this.style.background = '#dbeafe';
+                    setTimeout(() => {{
+                        this.style.background = '';
+                    }}, 1000);
+                }});
+            }});
+        </script>
     </body>
     </html>
     """
